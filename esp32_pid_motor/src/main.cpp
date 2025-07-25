@@ -1,4 +1,7 @@
-#include <micro_ros_arduino.h>
+#include <Arduino.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <micro_ros_platformio.h>
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
@@ -14,6 +17,7 @@ rcl_node_t node;
 rclc_executor_t executor;
 rcl_subscription_t vel_sub;
 rcl_subscription_t ang_sub;
+float maxSpeed = 255.0; // ความเร็วสูงสุดของมอเตอร์
 float speed = 0.0;
 float angular_speed = 0.0;
 // Message ตัวแปร
@@ -99,47 +103,45 @@ void setup()
   Serial.println("micro-ROS dual subscriber ready.");
 }
 void motor_control(){
+  // speed = vel_msg.data;
+  // angular_speed = ang_msg.data;
+
       if(speed != 0.0 && angular_speed != 0.0){
         speed = 0.0;
         angular_speed = 0.0;
       }
+      
+      
+      // float d = max(abs(speed) + abs(angular_speed), maxSpeed);
+      // float left_speed  = (speed + angular_speed) / d * maxSpeed;
+      // float right_speed = (speed - angular_speed) / d * maxSpeed;
+
+
+
+      // analogWrite(motorRF, right_speed);
+      // analogWrite(motorLF, left_speed);
+
       if(speed >= 0){
-        analogWrite(motorRF, speed);
-        delay(1);
-        analogWrite(motorLF, speed);
-        delay(1);
+        analogWrite(motorRF, abs(speed));
+        analogWrite(motorLF, abs(speed));
         analogWrite(motorRB, 0.0);
-        delay(1);
         analogWrite(motorLB, 0.0);
-        delay(1);
       }else{
         analogWrite(motorRF, 0.0);
-        delay(1);
         analogWrite(motorLF, 0.0);
-        delay(1);
-        analogWrite(motorRB, speed);
-        delay(1);
-        analogWrite(motorLB, speed);
-        delay(1);
+        analogWrite(motorRB, abs(speed));
+        analogWrite(motorLB, abs(speed));
       }
       if(angular_speed >= 0){
         analogWrite(motorRF, 0.0);
-        delay(1);
-        analogWrite(motorLF, speed);
-        delay(1);
-        analogWrite(motorRB, speed);
-        delay(1);
+        analogWrite(motorLF, abs(angular_speed));
+        analogWrite(motorRB, abs(angular_speed));
         analogWrite(motorLB, 0.0);
-        delay(1);
       }else{
-        analogWrite(motorRF, speed);
-        delay(1);
+        analogWrite(motorRF, abs(angular_speed));
         analogWrite(motorLF, 0.0);
-        delay(1);
         analogWrite(motorRB, 0.0);
-        delay(1);
-        analogWrite(motorLB, speed);
-        delay(1);
+        analogWrite(motorLB, abs(angular_speed));
       }
 
 
@@ -148,6 +150,5 @@ void loop()
 {
    
   rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
-  motor_control()
-  delay(10);
+  motor_control();
 }
