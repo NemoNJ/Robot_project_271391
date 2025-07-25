@@ -61,13 +61,14 @@ class KeyboardPublisher(Node):
                 msg.data = key
                 self.keyboard_pub.publish(msg)
 
-                time.sleep(0.05)
+                time.sleep(0.1)
                 rclpy.spin_once(self, timeout_sec=0.05)
-
+                if self.latest_vel != 0.0 and self.latest_ang_vel != 0.0:
+                  self.latest_vel = 0.0
+                  self.latest_ang_vel = 0.0
                 self.get_logger().info(
                     f"command : '{key}'  speed : {self.latest_vel} turnspeed : {self.latest_ang_vel} "
                 )
-
 def main():
     rclpy.init()
     node = KeyboardPublisher()

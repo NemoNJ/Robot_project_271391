@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String, Float32
@@ -6,94 +5,66 @@ from std_msgs.msg import String, Float32
 class VelocityController(Node):
     def __init__(self):
         super().__init__('velocity_controller_node')
+        # ส่งความเร็วออก
+        self.linear_pub = self.create_publisher(Float32, '/velocity', 10)
+        self.angular_pub = self.create_publisher(Float32, '/angular_velocity', 10)
+        # รับจาก keyboard_input
+        self.subscription = self.create_subscription(
+            String,
+            '/keyboard_input',
+            self.keyboard_callback,
+            10
+        )
 
-        # รับจาก keyboard
-        self.create_subscription(String, '/keyboard_input', self.keyboard_callback, 10)
-
-        # รับ encoder
-        self.create_subscription(Float32, '/left_encoder', self.left_encoder_callback, 10)
-        self.create_subscription(Float32, '/right_encoder', self.right_encoder_callback, 10)
-
-        # ส่ง pwm
-        self.left_pwm_pub = self.create_publisher(Float32, '/left_pwm', 10)
-        self.right_pwm_pub = self.create_publisher(Float32, '/right_pwm', 10)
-
-        # Target speed (-255 to 255)
+        # ระดับความเร็ว -5 ถึง +5
         self.linear_level = 0
         self.angular_level = 0
+        
+        # ค่าความเร็วต่อระดับ
         self.step = 51
 
-        self.left_target = 0.0
-        self.right_target = 0.0
-        self.left_actual = 0.0
-        self.right_actual = 0.0
-
-        # PID parameters
-        self.kp = 1.0
-        self.ki = 0.2
-        self.kd = 0.05
-
-        self.left_integral = 0.0
-        self.right_integral = 0.0
-        self.left_last_error = 0.0
-        self.right_last_error = 0.0
-
-        self.timer = self.create_timer(0.05, self.pid_control)  # 20Hz
+        self.prev_key = ''  # <== เพิ่มตัวแปรนี้เพื่อเก็บ key ก่อนหน้า
 
     def keyboard_callback(self, msg: String):
         key = msg.data.lower()
+        
+    # Reset angular level ถ้าเพิ่งเดินตรงแล้วจะหมุน
+        if key in ['a', 'd'] and self.prev_key in ['w', 's']:
+            self.angular_level = 0
 
+    # Reset linear level ถ้าเพิ่งหมุนแล้วจะเดินตรง
+        if key in ['w', 's'] and self.prev_key in ['a', 'd']:
+            self.linear_level = 0
+        # จัดการการเพิ่ม/ลดระดับความเร็ว
         if key == 'w':
             self.linear_level = min(5, self.linear_level + 1)
+            self.angular_level = 0
         elif key == 's':
             self.linear_level = max(-5, self.linear_level - 1)
+            self.angular_level = 0
         elif key == 'a':
             self.angular_level = max(-5, self.angular_level - 1)
+            self.linear_level = 0
         elif key == 'd':
             self.angular_level = min(5, self.angular_level + 1)
-        elif key == 'x':
             self.linear_level = 0
-            self.angular_level = 0
         else:
-            return
+            return  # ไม่ใช่ key ที่ใช้ควบคุม
 
-        self.left_target = (self.linear_level - self.angular_level) * self.step
-        self.right_target = (self.linear_level + self.angular_level) * self.step
+        self.prev_key = key  # <== บันทึก key ที่เพิ่งกดล่าสุด
 
-        self.get_logger().info(
-            f"[KEY:{key}] L_target: {self.left_target} | R_target: {self.right_target}"
-        )
+        # คำนวณและ Publish ความเร็ว
+        linear_speed = Float32()
+        angular_speed = Float32()
 
-    def left_encoder_callback(self, msg):
-        self.left_actual = msg.data
+        linear_speed.data = float(self.linear_level * self.step)
+        angular_speed.data = float(self.angular_level * self.step)
 
-    def right_encoder_callback(self, msg):
-        self.right_actual = msg.data
-
-    def pid_control(self):
-        # LEFT
-        err_l = self.left_target - self.left_actual
-        self.left_integral += err_l
-        der_l = err_l - self.left_last_error
-        out_l = self.kp * err_l + self.ki * self.left_integral + self.kd * der_l
-        self.left_last_error = err_l
-
-        # RIGHT
-        err_r = self.right_target - self.right_actual
-        self.right_integral += err_r
-        der_r = err_r - self.right_last_error
-        out_r = self.kp * err_r + self.ki * self.right_integral + self.kd * der_r
-        self.right_last_error = err_r
-
-        # Clamp
-        out_l = max(-255, min(255, out_l))
-        out_r = max(-255, min(255, out_r))
-
-        self.left_pwm_pub.publish(Float32(data=out_l))
-        self.right_pwm_pub.publish(Float32(data=out_r))
+        self.linear_pub.publish(linear_speed)
+        self.angular_pub.publish(angular_speed)
 
         self.get_logger().info(
-            f"PID | L: {self.left_actual:.1f}/{self.left_target:.1f} → {out_l:.1f} | R: {self.right_actual:.1f}/{self.right_target:.1f} → {out_r:.1f}"
+            f"[KEY:{key}] Linear: {linear_speed.data}  |  Angular: {angular_speed.data}"
         )
 
 def main(args=None):
