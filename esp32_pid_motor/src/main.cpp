@@ -4,10 +4,10 @@
 #include <rclc/executor.h>
 #include <std_msgs/msg/float32.h>
 
-#define motorRF 1
-#define motorRB 2
-#define motorLF 3
-#define motorLB 4
+#define motorRF 32
+#define motorRB 33
+#define motorLF 34
+#define motorLB 35
 
 // ROS2 node และ executor
 rcl_node_t node;
