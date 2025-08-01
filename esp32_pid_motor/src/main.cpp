@@ -9,8 +9,8 @@
 
 #define motorRF 32
 #define motorRB 33
-#define motorLF 34
-#define motorLB 35
+#define motorLF 25
+#define motorLB 26
 
 // ROS2 node และ executor
 rcl_node_t node;
