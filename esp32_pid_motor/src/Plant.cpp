@@ -72,9 +72,9 @@ inline void servoWriteTracked(int idx, int deg){
   myservo[idx].write(deg);
 }
 //servopin{load_plant,gripper,change end effector,camera}
-int pos_degree[4] = {9,54,35,30};
+int pos_degree[4] = {9,56,35,30};
 int servoPin[4] = {15,23,22,2};
-int change_eff_pos[2] = {0,99};
+int change_eff_pos[2] = {0,97};
 int pos = 0;
 int last_msgdata = 0;
 bool servoActionCompleted = true;
@@ -452,14 +452,14 @@ void cover_the_soil(){
   // delay(1000);
   // moveMM(stepper2,155.0);
   myservo[1].write(pos_degree[0]);
-  moveMM(stepper2,181.0);
+  moveMM(stepper2,170.0);
   delay(300);
   for(int i = 0;i < 2;i++) gripper_open_close();
   //ป้องกันชนขอบ
   moveMM(stepper1,30.0);
-  moveMM(stepper2,157.0);
+  moveMM(stepper2,152.0);
   //---------
-  moveMM(stepper1,5.0);
+  moveMM(stepper1,7.0);
   moveMM(stepper2,100.0);
   stepper1.disableOutputs();
   stepper2.disableOutputs();
@@ -495,7 +495,7 @@ void goHomeZero(AccelStepper &s1, AccelStepper &s2, long tol_steps) {
   }
 
   // กลับไป 0 อย่างเป็นทางการ
-  moveMM(stepper2,55.0);
+  moveMM(stepper2,35.0);
   myservo[2].write(change_eff_pos[1]);//หัวขุดยกลง
   servoWriteTracked(2, change_eff_pos[1]);
   s2.moveTo(0);
@@ -531,7 +531,7 @@ void move_steppers_01() {
   myservo[2].write(change_eff_pos[0]);//ยก servo หัวขุดขึ้น
   // servoWriteTracked(2, 85);
   // anti_vibration(2);
-  moveMM(stepper2,174.0);
+  moveMM(stepper2,166.0);
   // servoWriteTracked(2, 0);
   // anti_vibration(2);
   myservo[1].write(pos_degree[0]);
@@ -546,7 +546,7 @@ void move_steppers_02() {
   // delay(1000); //ลดเวลา
   // stepper2.setPinsInverted(false, false, true);
   // myservo[1].write(0);
-  moveMM(stepper2,68.0);
+  moveMM(stepper2,66.0);
   myservo[2].write(change_eff_pos[0]);
   if(mode_load == 0){
      myservo[1].write(pos_degree[2]);
@@ -578,17 +578,17 @@ void move_driller(){
   // anti_vibration(2);
   delay(500); 
   //driller
-    stepper2.setMaxSpeed(1550);
-    stepper2.setAcceleration(1550);
+    stepper2.setMaxSpeed(2450);
+    stepper2.setAcceleration(2550);
     digitalWrite(MOTOR_1, LOW);
     digitalWrite(MOTOR_2,HIGH);
-    moveMM(stepper2,130.0);
-    delay(300); 
+    moveMM(stepper2,140.0);
+    // delay(300); 
     stepper2.setMaxSpeed(7400);
     stepper2.setAcceleration(5500);
     moveMM(stepper2,35.0);
-  digitalWrite(MOTOR_1, LOW);
-  digitalWrite(MOTOR_2,LOW);
+    digitalWrite(MOTOR_1, LOW);
+    digitalWrite(MOTOR_2,LOW);
   // myservo[2].write(90);
   stepper1.disableOutputs();
   stepper2.disableOutputs();
