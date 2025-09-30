@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"name": "esp32_pid_motor",
+			"path": "../../esp32_pid_motor"
+		}
+	],
+	"settings": {}
+}
