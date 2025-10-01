@@ -71,8 +71,8 @@ inline void servoWriteTracked(int idx, int deg){
   servo_last_deg[idx] = deg;
   myservo[idx].write(deg);
 }
+int pos_degree[4] = {14,53,37,32};
 //servopin{load_plant,gripper,change end effector,camera}
-int pos_degree[4] = {9,56,35,30};
 int servoPin[4] = {15,23,22,2};
 int change_eff_pos[2] = {0,97};
 int pos = 0;
@@ -452,8 +452,8 @@ void cover_the_soil(){
   // delay(1000);
   // moveMM(stepper2,155.0);
   myservo[1].write(pos_degree[0]);
-  moveMM(stepper2,170.0);
-  delay(300);
+  moveMM(stepper2,174.0);
+  // delay(300);
   for(int i = 0;i < 2;i++) gripper_open_close();
   //ป้องกันชนขอบ
   moveMM(stepper1,30.0);
@@ -546,7 +546,7 @@ void move_steppers_02() {
   // delay(1000); //ลดเวลา
   // stepper2.setPinsInverted(false, false, true);
   // myservo[1].write(0);
-  moveMM(stepper2,66.0);
+  moveMM(stepper2,71.0);
   myservo[2].write(change_eff_pos[0]);
   if(mode_load == 0){
      myservo[1].write(pos_degree[2]);
@@ -582,7 +582,7 @@ void move_driller(){
     stepper2.setAcceleration(2550);
     digitalWrite(MOTOR_1, LOW);
     digitalWrite(MOTOR_2,HIGH);
-    moveMM(stepper2,140.0);
+    moveMM(stepper2,147.0);//145
     // delay(300); 
     stepper2.setMaxSpeed(7400);
     stepper2.setAcceleration(5500);
