@@ -42,21 +42,18 @@ class KeyboardVelocityPublisher(Node):
     
     def show_instructions(self):
         instructions = (
-            "\n\n====== Keyboard Control Mode ======\n\n"
-            "   [w] : Increase forward speed\n\n"
-            "   [s] : Increase backward speed\n\n"
-            "   [a] : Increase left turn (skid steer) speed\n\n"
-            "   [d] : Increase right turn (skid steer) speed\n\n"
-            "   [c] : Brake\n\n"
-            "   [r] : slow move\n\n"
-            "   [p] : auto_plant\n\n"
-            "   [k] : emergency_plant_mannual\n\n"
-            "   [j] : emergency_gripper_mannual\n\n"
-            "   [l] : emergency_load_mannual\n\n"
-            "   [o] : STOP and exit\n\n"
-            "-------------------------------------\n"
-            f"Current speed: Linear={self.linear_level}, Angular={self.angular_level}\n"
-        )
+        "\n\n"
+        "--------------------------------------------------------------------------------------------\n"
+        "\n\n"
+        "RRRRR    EEEEE   AAAAA   III     CCCCC      OOOOO    M   M   EEEEE   BBBBB    AAAAA   CCCCC   K   K\n"
+        "R    R   E       A   A    I     C          O     O   MM MM   E       B    B  A     A C       K  K \n"
+        "RRRRR    EEEE    AAAAA    I     C          O     O   M M M   EEEE    BBBBB   AAAAAAA C       KKK  \n"
+        "R   R    E       A   A    I     C          O     O   M   M   E       B    B  A     A C       K  K \n"
+        "R    R   EEEEE   A   A   III     CCCCC      OOOOO    M   M   EEEEE   BBBBB   A     A  CCCCC  K   K\n"
+        "\n"
+        "--------------------------------------------------------------------------------------------\n"
+        f"Current speed: Linear={self.linear_level}, Angular={self.angular_level}\n"
+    )
         self.get_logger().info(instructions)
     
     def calculate_and_publish_velocity(self, key):
