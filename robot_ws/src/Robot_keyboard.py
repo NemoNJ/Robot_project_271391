@@ -77,7 +77,10 @@ class KeyboardVelocityPublisher(Node):
             self.angular_level = 0
             self.linear_level = 0
         elif key == 'r':
-            self.linear_level = 1 if self.linear_level >= 0 else -1
+            self.linear_level = 1 # if self.linear_level >= 0 else -1
+            self.angular_level = 0
+        elif key == 'f':
+            self.linear_level = -1 # if self.linear_level <= 0 else 1
             self.angular_level = 0
         elif key == 'q':  # หมุนซ้าย
             self.angular_level = -1
@@ -110,11 +113,10 @@ class KeyboardVelocityPublisher(Node):
         angular_speed = Float32()
         
         # Calculate linear speed with limit
-        if key == 'r':
+        if key == 'r' or key == 'f':
             raw_linear = self.linear_level * self.step / 2
         else:
             raw_linear = self.linear_level * self.step
-            
         # Apply speed limit for both positive and negative values
         if raw_linear > 0:
             linear_speed.data = float(min(raw_linear, self.max_speed))
@@ -219,26 +221,26 @@ class KeyboardVelocityPublisher(Node):
                 self.auto_plant = 0
                 self.palnt_pub.publish(Int32(data=self.auto_plant))
                 self.get_logger().info("Driller completed.")
-            if key == 'm':
+            if key == 'n':
                 self.gripper_man_pub.publish(Int32(data=1))
                 self.get_logger().info("Gripper move: Occupied")
-            if key == 'n':
+            if key == 'm':
                 self.gripper_man_pub.publish(Int32(data=0))
                 self.get_logger().info("Gripper move: Non_Occupied")
             if key == 't':
                 self.cartesian_man_pub.publish(Int32(data=1))
                 self.get_logger().info("Cartesian move x153 203 : test")
-            if key == 'f':
+            if key == 'v':
                 self.cartesian_man_pub.publish(Int32(data=0))
                 self.get_logger().info("Anti_Vibration")
-            if key == 'j':
-                self.camera_pub.publish(Int32(data=1))
-                self.get_logger().info("Camera move: 1")
-
             if key == 'k':
+                self.camera_pub.publish(Int32(data=1))
+                self.get_logger().info("Camera move: +")
+
+            if key == 'j':
                 self.camera_pub.publish(Int32(data=0))
-                self.get_logger().info("Camera move: 0")
-            if key in ['w', 'a', 's', 'd','c','r','q','e']:
+                self.get_logger().info("Camera move: -")
+            if key in ['w', 'a', 's', 'd','c','r','q','e','f']:
                 if self.calculate_and_publish_velocity(key):
                     time.sleep(0.1)  # Small delay to prevent rapid key repeats
 
