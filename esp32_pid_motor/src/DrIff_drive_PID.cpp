@@ -87,6 +87,8 @@ unsigned long current_time = 0;
 static unsigned long last_pub = 0;
 static int disconnect_count = 0;
 
+
+
 // Motor Pins
 // // Motor Pins สำหรับ 4 ล้อ
 // #define MOTOR_L_IN1_1 18  // ล้อซ้ายหน้า
@@ -133,7 +135,29 @@ unsigned long last_time_r1 = 0;
 unsigned long last_time_r2 = 0;
 unsigned long last_time_l1 = 0;
 unsigned long last_time_l2 = 0;
+// ----- Motor calibration (วางไว้หลังส่วนกำหนดพินมอเตอร์) -----
+struct MotorCal {
+  float fwd_scale;   // สเกลตอนเดินหน้า
+  float rev_scale;   // สเกลตอนถอยหลัง
+  bool  invert;      // ต้องกลับเฟสไหม (ล้อขวาส่วนใหญ่จะ true)
+};
 
+// ปรับตัวเลขตามที่คุณวัดจริงได้เลย
+// ซ้าย
+static const MotorCal CAL_LF = {0.885f,   0.985f,   false};   // Left Front  (MOTOR_L_IN1_1, MOTOR_L_IN2_1)
+static const MotorCal CAL_LR = {0.917f,   0.985f,   false};   // Left Rear   (MOTOR_L_IN1_2, MOTOR_L_IN2_2)
+// ขวา (กลับเฟส)
+static const MotorCal CAL_RF = {0.988707f,0.988707f, true};   // Right Front (MOTOR_R_IN1_1, MOTOR_R_IN2_1)
+static const MotorCal CAL_RR = {0.987807f,0.987807f, true};   // Right Rear  (MOTOR_R_IN1_2, MOTOR_R_IN2_2)
+
+// helper เลือกคาลิเบรตจากพิน
+static inline const MotorCal& cal_for(int in1_pin, int in2_pin) {
+  if (in1_pin == MOTOR_L_IN1_1 && in2_pin == MOTOR_L_IN2_1) return CAL_LF;
+  if (in1_pin == MOTOR_L_IN1_2 && in2_pin == MOTOR_L_IN2_2) return CAL_LR;
+  if (in1_pin == MOTOR_R_IN1_1 && in2_pin == MOTOR_R_IN2_1) return CAL_RF;
+  // else MOTOR_R_IN1_2 / MOTOR_R_IN2_2
+  return CAL_RR;
+}
 enum states
 {
   WAITING_AGENT,
@@ -216,30 +240,29 @@ void setup()
     
 //------------------------------ < Fuction > -------------------------------------//
 
+
 void velocity_callback(const void * msgin) {
-  velocity_msg.data = ((const std_msgs__msg__Float32*)msgin)->data;
-  
-  // ควบคุมมอเตอร์ทั้งหมดด้วยความเร็วเดียวกัน
-  set_motor_speed(MOTOR_L_IN1_1, MOTOR_L_IN2_1, velocity_msg.data);
-  set_motor_speed(MOTOR_L_IN1_2, MOTOR_L_IN2_2, velocity_msg.data);
-  set_motor_speed(MOTOR_R_IN1_1, MOTOR_R_IN2_1, (-1)*velocity_msg.data);
-  set_motor_speed(MOTOR_R_IN1_2, MOTOR_R_IN2_2, (-1)*velocity_msg.data);
+  velocity_msg.data = ((const std_msgs__msg__Float32*)msgin)->data; // ค่านี้ยังเป็น PWM เดิมได้
+
+  float v = velocity_msg.data;
+  set_motor_speed(MOTOR_L_IN1_1, MOTOR_L_IN2_1, v);
+  set_motor_speed(MOTOR_L_IN1_2, MOTOR_L_IN2_2, v);
+  set_motor_speed(MOTOR_R_IN1_1, MOTOR_R_IN2_1, v);
+  set_motor_speed(MOTOR_R_IN1_2, MOTOR_R_IN2_2, v);
 }
 
 void angular_velocity_callback(const void * msgin) {
   float angular_speed = ((const std_msgs__msg__Float32*)msgin)->data;
-  
-  // คำนวณความเร็วแต่ละด้านโดยคำนึงถึงการหมุน
-  float left_speed = velocity_msg.data - angular_speed;
+
+  float left_speed  = velocity_msg.data - angular_speed;
   float right_speed = velocity_msg.data + angular_speed;
-  
-  // ควบคุมมอเตอร์ด้านซ้าย (ทั้งหน้าและหลัง)
-  set_motor_speed(MOTOR_L_IN1_1, MOTOR_L_IN2_1,left_speed);
-  set_motor_speed(MOTOR_L_IN1_2, MOTOR_L_IN2_2,left_speed);
-  // ควบคุมมอเตอร์ด้านขวา (ทั้งหน้าและหลัง)
-  set_motor_speed(MOTOR_R_IN1_1, MOTOR_R_IN2_1,(-1)*right_speed);
-  set_motor_speed(MOTOR_R_IN1_2, MOTOR_R_IN2_2,(-1)*right_speed);
+
+  set_motor_speed(MOTOR_L_IN1_1, MOTOR_L_IN2_1, left_speed);
+  set_motor_speed(MOTOR_L_IN1_2, MOTOR_L_IN2_2, left_speed);
+  set_motor_speed(MOTOR_R_IN1_1, MOTOR_R_IN2_1, right_speed);
+  set_motor_speed(MOTOR_R_IN1_2, MOTOR_R_IN2_2, right_speed);
 }
+
 void timer_callback(rcl_timer_t *, int64_t)
 {
 }
@@ -392,43 +415,45 @@ void flashLED(unsigned int n_times)
     delay(1000);
 }
 
+// ----- แทนที่ของเดิมทั้งหมด -----
+static inline int clamp_pwm(float x, int maxDuty=255) {
+  // แปลงเป็น duty บวก 0..maxDuty พร้อม clamp
+  int d = (int)roundf(fabsf(x));
+  if (d < 0) d = 0;
+  if (d > maxDuty) d = maxDuty;
+  return d;
+}
+
 void set_motor_speed(int in1_pin, int in2_pin, float speed) {
-  // if(speed > 0.0){
-       if (in1_pin == MOTOR_L_IN1_1 && in2_pin == MOTOR_L_IN2_1) {
-            speed = speed*0.885;
-       }
-       else if (in1_pin == MOTOR_L_IN1_2 && in2_pin == MOTOR_L_IN2_2) {
-            speed = speed*0.917;
-       }
-       else if (in1_pin == MOTOR_R_IN1_1 && in2_pin == MOTOR_R_IN2_1) {
-            speed = speed*0.988707;
-       }
-       else if (in1_pin == MOTOR_R_IN1_2 && in2_pin == MOTOR_R_IN2_2) {
-            speed = speed*0.987807;
-       }
-  // }else{
-  //      if (in1_pin == MOTOR_L_IN1_1 && in2_pin == MOTOR_L_IN2_1) {
-  //           speed = speed*0.985;
-  //      }
-  //      else if (in1_pin == MOTOR_L_IN1_2 && in2_pin == MOTOR_L_IN2_2) {
-  //           speed = speed*0.985;
-  //      }
-  //      else if (in1_pin == MOTOR_R_IN1_1 && in2_pin == MOTOR_R_IN2_1) {
-  //           speed = speed*0.988707;
-  //      }
-  //      else if (in1_pin == MOTOR_R_IN1_2 && in2_pin == MOTOR_R_IN2_2) {
-  //           speed = speed*0.987807;
-  //      }
-  // }
-       
-  if (speed > 0.0) {         // เดินหน้า
-    analogWrite(in1_pin, abs(speed));
-    analogWrite(in2_pin, 0.0);
-  } else if (speed < 0.0) { // ถอยหลัง
-    analogWrite(in1_pin, 0.0);
-    analogWrite(in2_pin, abs(speed));
-  } else {                   // หยุด (Brake)
-    analogWrite(in1_pin, 0.0);
-    analogWrite(in2_pin, 0.0);
+  const MotorCal& cal = cal_for(in1_pin, in2_pin);
+
+  // จัดการทิศที่มอเตอร์นี้ต้องการ (ล้อขวา invert=true)
+  float s = cal.invert ? -speed : speed;
+
+  // เลือกสเกลตามทิศทาง
+  float scaled = (s >= 0.0f) ? (s * cal.fwd_scale) : (s * cal.rev_scale);
+
+  // Deadband + min duty (ช่วยชนะ static friction)
+  const int MAX_DUTY = 255;       // ถ้าตั้ง LEDC อย่างอื่น ปรับตรงนี้
+  const int MIN_DUTY = 40;        // ปรับตามรถคุณ
+  const float DEADBAND = 5.0f;    // |scaled| ต่ำกว่านี้ให้หยุด (ถ้าคุณส่งย่าน 0..255)
+
+  if (fabsf(scaled) <= DEADBAND) {
+    analogWrite(in1_pin, 0);
+    analogWrite(in2_pin, 0);
+    return;
+  }
+
+  int duty = clamp_pwm(scaled, MAX_DUTY);
+  if (duty > 0 && duty < MIN_DUTY) duty = MIN_DUTY;
+
+  if (scaled >= 0.0f) {
+    // เดินหน้า
+    analogWrite(in1_pin, duty);
+    analogWrite(in2_pin, 0);
+  } else {
+    // ถอยหลัง
+    analogWrite(in1_pin, 0);
+    analogWrite(in2_pin, duty);
   }
 }
