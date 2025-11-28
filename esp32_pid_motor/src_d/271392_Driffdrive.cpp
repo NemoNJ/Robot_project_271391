@@ -96,30 +96,6 @@ static int disconnect_count = 0;
 #define MOTOR_L_IN1_2 26  // ล้อซ้ายหลัง
 #define MOTOR_L_IN2_2 27
 
-// *** ลบ Encoder ทั้งหมดออก ***
-// #define ENCODER_R1_A 34
-// #define ENCODER_R1_B 35
-// #define ENCODER_R2_A 36
-// #define ENCODER_R2_B 39
-// #define ENCODER_L1_A 16
-// #define ENCODER_L1_B 4
-// #define ENCODER_L2_A 5
-// #define ENCODER_L2_B 17
-
-// ESP32Encoder encoder_r1;
-// ESP32Encoder encoder_r2;
-// ESP32Encoder encoder_l1;
-// ESP32Encoder encoder_l2;
-
-// float rpm_r1 = 0;
-// float rpm_r2 = 0;
-// float rpm_l1 = 0;
-// float rpm_l2 = 0;
-
-// unsigned long last_time_r1 = 0;
-// unsigned long last_time_r2 = 0;
-// unsigned long last_time_l1 = 0;
-// unsigned long last_time_l2 = 0;
 
 enum states
 {
@@ -150,12 +126,6 @@ void setup()
 {
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
-
-    // *** ลบการ setup encoder ออก ***
-    // encoder_r1.attachHalfQuad(ENCODER_R1_A, ENCODER_R1_B);
-    // encoder_r2.attachHalfQuad(ENCODER_R2_A, ENCODER_R2_B);
-    // encoder_l1.attachHalfQuad(ENCODER_L1_A, ENCODER_L1_B);
-    // encoder_l2.attachHalfQuad(ENCODER_L2_A, ENCODER_L2_B);
 }
   
 void loop()
@@ -385,6 +355,7 @@ struct timespec getTime()
 
 void rclErrorLoop()
 {
+    ESP.restart();
     while (true)
     {
         flashLED(3);
